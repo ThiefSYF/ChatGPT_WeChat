@@ -1,5 +1,5 @@
 import hashlib
-from flask import Flask, request, make_response
+from flask import Flask, request, make_response, render_template
 from wechatpy import parse_message, create_reply
 import wechatpy
 import urllib
@@ -26,10 +26,11 @@ msgsmanag = gptMessageManage(tokens,max_tokens,model,temperature,rsize)
 
 @app.route("/")
 def hello():
-    return "Hello World!"
+    return render_template('index.html')
 
 @app.route('/wechat/', methods=['GET', 'POST']) 
 def wechat():
+
     global reply
     global msgsmanag
     global wechattoken
@@ -48,12 +49,21 @@ def wechat():
     else:
         msg = parse_message(request.get_data())
         if msg.type == 'text':
-            rtext = msgsmanag.get_response(msg,int(time.time()))
-            reply = create_reply(str(rtext).strip(), message=msg)#创建消息
+            #如果msg包含sensitive_data中的词，则不回复:
+            if any(word in msg.content for word in sensitive_data):
+                reply = create_reply("警告：包含敏感词！", message=msg)
+            else:
+                rtext = msgsmanag.get_response(msg,int(time.time()))
+                reply = create_reply(str(rtext).strip(), message=msg)#创建消息
         if msg.type == 'image':
             rtext = '你发送了一张图片'
             reply = create_reply(rtext, message=msg)#创建消息
         return reply.render()#回复消息
 
 if __name__ == '__main__':
-    app.run( host = '0.0.0.0')
+    #使用OS读取txt文件内容，以换行符为分界存为一个列表
+    current_path = os.path.dirname(__file__)
+    with open(current_path+"/sensitive_words_lines.txt", 'r', encoding='utf-8') as f:
+        sensitive_data = f.readlines()
+    print(sensitive_data[5])
+    app.run( host = '0.0.0.0',port=80)
