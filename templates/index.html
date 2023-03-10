@@ -9,15 +9,45 @@
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <style>
-        .titletext{
-            font-size: 30px;
+        .headtext{
+            font-size: 50px;
             font-weight: bold;
             color: #000000;
             text-align: center;
+            margin-top: 50px;
+
+
+        }
+        .titletext{
+            font-size: 40px;
+            font-weight: bold;
+            color: #000000;
+            text-align: center;
+            margin-top: 100px;
+
+
+        }
+        .urltext{
+            font-size: 30px;
+            font-weight: bold;
+
+            text-align: center;
             margin-top: 20px;
+        }
+        .urlpart{
+            /*垂直居中 */
+            vertical-align: middle;
+            text-align: center;
+            margin-top: 200px;
         }
 </style>
 <body>
-        <div class="titletext">导航页</div>
+        <div class="headtext">YoRHa-Lab314</div>
+        <div class="titletext">导航页(占位，记得改UI)</div>
+        <div class="urlpart">
+        <a href="http://www.yorha-lab314.com:8080" class="urltext">YoRHa-GPT3.5</a><br>
+        <a class="urltext">GPT+VITS(原神库暂定）[占位]</a><br>
+        <a class="urltext">私人云 [占位]</a><br>
+        </div>
 </body>
 </html>
