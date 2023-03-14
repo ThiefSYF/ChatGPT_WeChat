@@ -72,8 +72,8 @@ class gptMessageManage(object):
         '''
         # 判断是否返回分割列表里面的内容
         if msgs.content == '接收':
-            if self.self.msgs_msgdata_dict[str(msgs.source)].status == 'ready':
-                return self.msgs_msgdata_dict[str(msgs.source)].messages[-1]
+            if self.msgs_msgdata_dict[str(msgs.source)].status == 'ready':
+                return self.msgs_msgdata_dict[str(msgs.source)].messages[-1]['content']
             else:
                 return '仍在处理中'
 
@@ -165,7 +165,6 @@ class gptMessageManage(object):
 
 
     def send_request(self,msgs):
-
         headers = {
             'Content-Type': 'application/json',
             'Authorization': self.get_header(),
@@ -182,12 +181,14 @@ class gptMessageManage(object):
         new_thread.start()
         # 在14秒内每秒查询msg_status_dict，判断是否有返回值
         for i in range(14):
-            if self.msgs_status_dict[str(msgs.id)] == 'haveResponse':
+            if self.msgs_msgdata_dict[str(msgs.source)].status == 'ready':
                 break
             time.sleep(1)
-        if self.msgs_status_dict[str(msgs.id)] == 'haveResponse':
-            return self.msgs_msgdata_dict[str(msgs.source)].messages[-1]
+        self.msgs_status_dict[str(msgs.id)] = 'haveResponse'
+        if self.msgs_msgdata_dict[str(msgs.source)].status == 'ready':
+            return self.msgs_msgdata_dict[str(msgs.source)].messages[-1]['content']
         else:
+            print('请求超时')
             return '服务器繁忙，请稍后再试！'
 
     def del_cache(self):
