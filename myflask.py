@@ -14,10 +14,10 @@ app.debug = True
 
 ##############################openai基础设置##########################
 tokens = ['Bearer sk-XXX1','Bearer sk-XXX2']
-max_tokens = 1000
+max_tokens = 3000
 model = 'gpt-3.5-turbo'
 temperature = 0.8
-rsize = 200 # 设置每条消息的回复长度，超过长度将被分割
+rsize = 1000 # 设置每条消息的回复长度，超过长度将被分割
 ##############################wechat基础设置##########################
 wechattoken = 'wechattoken'
 
