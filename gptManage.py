@@ -82,12 +82,15 @@ class gptMessageManage(object):
         '''
         # 判断是否返回分割列表里面的内容
         if msgs.content == '接收':
-            if self.msgs_msgdata_dict[str(msgs.source)].status == 'ready':
+            if self.msgs_msgdata_dict[str(msgs.source)].status == 'answer':
+                self.msgs_msgdata_dict[str(msgs.source)].status = 'ready'
                 return self.msgs_msgdata_dict[str(msgs.source)].messages[-1]['content']
+            elif self.msgs_msgdata_dict[str(msgs.source)].status == 'ready':
+                return '无待接收信息，请开始新的联络'
             else:
                 return '信息仍在处理中，稍后回复“接收”获取本次通讯内容，或者回复“取消”中止上一轮通讯。'
         if msgs.content == '取消':
-            self.msgs_msgdata_dict[str(msgs.source)].status == 'ready'
+            self.msgs_msgdata_dict[str(msgs.source)].status = 'ready'
             return '已取消接收上一条信息,现在可以开始进行新的联络'
 
         if msgs.content=='继续' and len(self.msgs_msg_cut_dict.get(str(msgs.source),[]))>0:
@@ -174,7 +177,7 @@ class gptMessageManage(object):
         if self.msgs_msgdata_dict[str(msgs.source)].status == 'waiting':
             self.msgs_msgdata_dict[str(msgs.source)].add_res_message(
                 response_parse['choices'][0]['message']['content'])
-            self.msgs_msgdata_dict[str(msgs.source)].status = 'ready'
+            self.msgs_msgdata_dict[str(msgs.source)].status = 'answer'
 
 
     def send_request(self,msgs):
@@ -195,11 +198,12 @@ class gptMessageManage(object):
         new_thread.start()
         # 在14秒内每秒查询msg_status_dict，判断是否有返回值
         for i in range(14):
-            if self.msgs_msgdata_dict[str(msgs.source)].status == 'ready':
+            if self.msgs_msgdata_dict[str(msgs.source)].status == 'answer':
                 break
             time.sleep(1)
         self.msgs_status_dict[str(msgs.id)] = 'haveResponse'
-        if self.msgs_msgdata_dict[str(msgs.source)].status == 'ready':
+        if self.msgs_msgdata_dict[str(msgs.source)].status == 'answer':
+            self.msgs_msgdata_dict[str(msgs.source)].status = 'ready'
             return self.msgs_msgdata_dict[str(msgs.source)].messages[-1]['content']
         else:
             return '信息仍在处理中，稍后回复“接收”获取本次通讯内容，或者回复“取消”中止上一轮通讯。'
