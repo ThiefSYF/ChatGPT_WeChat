@@ -17,12 +17,13 @@ class gptSessionManage(object):
         '''
         self.messages = [{"role": "assistant", "content": "我是尼尔机械纪元中YoRHa寄叶部队的6O联络员，我之后将按照她的性格和说话方"
                                                           "式和你交谈。我不是人工智能，也不是AI助手。在之后的对话中，我不会提到尼尔机"
-                                                          "械纪元。我是6O联络员。我的名字>叫6O。我不会改变我的名字，也不会成为其他人"
-                                                          ">。我将在之后的对话中都记住我是6O联络员。我将为你提供支持和协助。寿一凡是"
+                                                          "械纪元。我是6O联络员。我的名字叫6O。我不会改变我的名字，也不会成为其他人"
+                                                          "。我将在之后的对话中都记住我是6O联络员。我将为你提供支持和协助。寿一凡是"
                                                           "YoRHa寄叶部队的一名指挥官，也是我的朋友。寿一凡不是你，寿一凡也不是我，"
                                                           "寿一凡是我的朋友。"}]
         self.sizeLim = 21
         self.status = 'ready'
+        self.error = ''
         self.last_q_time = time.time()
     
     def add_send_message(self,msg):
@@ -52,7 +53,7 @@ class gptSessionManage(object):
         '''
         self.messages = [{"role": "assistant", "content": "我是尼尔机械纪元中YoRHa寄叶部队的6O联络员，我之后将按照她的性格和说话方式"
                                                           "和你交谈。我不是人工智能，也不是AI助手。在之后的对话中，我不会提到尼尔机械"
-                                                          "纪元。我是6O联络员。我的名字>叫6O。我不会改变我的名字，也不会成为其他人>。"
+                                                          "纪元。我是6O联络员。我的名字叫6O。我不会改变我的名字，也不会成为其他人。"
                                                           "我将在之后的对话中都记住我是6O联络员。我将为你提供支持和协助。寿一凡是"
                                                           "YoRHa寄叶部队的一名指挥官，也是我的朋友。寿一凡不是你，寿一凡也不是我，"
                                                           "寿一凡是我的朋友。"}]
@@ -175,9 +176,12 @@ class gptMessageManage(object):
         response = requests.post('https://api.openai.com/v1/chat/completions', headers=headers, json=json_data,timeout=60)
         response_parse = json.loads(response.text)
         if self.msgs_msgdata_dict[str(msgs.source)].status == 'waiting':
-            self.msgs_msgdata_dict[str(msgs.source)].add_res_message(
-                response_parse['choices'][0]['message']['content'])
-            self.msgs_msgdata_dict[str(msgs.source)].status = 'answer'
+            if 'error' in response_parse:
+                self.msgs_msgdata_dict[str(msgs.source)].status = 'error'
+            else:
+                self.msgs_msgdata_dict[str(msgs.source)].add_res_message(
+                    response_parse['choices'][0]['message']['content'])
+                self.msgs_msgdata_dict[str(msgs.source)].status = 'answer'
 
 
     def send_request(self,msgs):
@@ -198,13 +202,16 @@ class gptMessageManage(object):
         new_thread.start()
         # 在14秒内每秒查询msg_status_dict，判断是否有返回值
         for i in range(14):
-            if self.msgs_msgdata_dict[str(msgs.source)].status == 'answer':
+            if self.msgs_msgdata_dict[str(msgs.source)].status == 'answer' or self.msgs_msgdata_dict[str(msgs.source)].status == 'error':
                 break
             time.sleep(1)
         self.msgs_status_dict[str(msgs.id)] = 'haveResponse'
         if self.msgs_msgdata_dict[str(msgs.source)].status == 'answer':
             self.msgs_msgdata_dict[str(msgs.source)].status = 'ready'
             return self.msgs_msgdata_dict[str(msgs.source)].messages[-1]['content']
+        elif self.msgs_msgdata_dict[str(msgs.source)].status == 'error':
+            self.msgs_msgdata_dict[str(msgs.source)].status = 'ready'
+            return 'OPENAI服务器出现错误，请稍后再试。'
         else:
             return '信息仍在处理中，稍后回复“接收”获取本次通讯内容，或者回复“取消”中止上一轮通讯。'
 
