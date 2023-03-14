@@ -14,7 +14,7 @@ app.debug = True
 
 ##############################openai基础设置##########################
 tokens = ['Bearer sk-XXX1','Bearer sk-XXX2']
-max_tokens = 250
+max_tokens = 1000
 model = 'gpt-3.5-turbo'
 temperature = 0.8
 rsize = 200 # 设置每条消息的回复长度，超过长度将被分割
@@ -50,7 +50,7 @@ def wechat():
         msg = parse_message(request.get_data())
         if msg.type == 'text':
             #如果msg包含sensitive_data中的词，则不回复:
-            if(any(word if word in msg else False for word in sensitive_data)):
+            if(any(word if word in msg.content else False for word in sensitive_data)):
                 reply = create_reply("警告：包含敏感词！", message=msg)
             else:
                 rtext = msgsmanag.get_response(msg,int(time.time()))
@@ -67,12 +67,6 @@ if __name__ == '__main__':
         sensitive_data = f.readlines()
         #去除列表中的换行符
         sensitive_data = [word.strip() for word in sensitive_data]
-    testword ='s边s'
-    #判断testword是否包含sensitive_data中的词
-    #print(sensitive_data)
-    if(any(word if word in testword else False for word in sensitive_data)):
-        print('包含敏感词')
-    else:
-        print('不包含敏感词')
+
 
     app.run( host = '0.0.0.0',port=80)

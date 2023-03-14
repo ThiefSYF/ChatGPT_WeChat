@@ -17,6 +17,7 @@ class gptSessionManage(object):
         '''
         self.messages = [{"role": "system", "content": "你是一个乐于助人的助手."}]
         self.sizeLim = 21
+        self.status = 'ready'
         self.last_q_time = time.time()
     
     def add_send_message(self,msg):
@@ -71,7 +72,7 @@ class gptMessageManage(object):
         '''
         # 判断是否返回分割列表里面的内容
         if msgs.content == '接收':
-            if self.msgs_status_dict.get(str(msgs.id),'')=='haveResponse':
+            if self.self.msgs_msgdata_dict[str(msgs.source)].status == 'ready':
                 return self.msgs_msgdata_dict[str(msgs.source)].messages[-1]
             else:
                 return '仍在处理中'
@@ -153,13 +154,14 @@ class gptMessageManage(object):
         '''
         return random.choice(self.tokens)
 
-    def get_respond(self,headers,json,msgs):
-        self.msgs_status_dict[str(msgs.id)] = 'waiting'
-        response = requests.post('https://api.openai.com/v1/chat/completions', headers=headers, json=json)
+    def get_respond(self,headers,json_data,msgs):
+        self.msgs_msgdata_dict[str(msgs.source)].status = 'waiting'
+        response = requests.post('https://api.openai.com/v1/chat/completions', headers=headers, json=json_data,timeout=60)
         response_parse = json.loads(response.text)
         self.msgs_msgdata_dict[str(msgs.source)].add_res_message(
             response_parse['choices'][0]['message']['content'])
         self.msgs_status_dict[str(msgs.id)] = 'haveResponse'
+        self.msgs_msgdata_dict[str(msgs.source)].status = 'ready'
 
 
     def send_request(self,msgs):
@@ -180,10 +182,10 @@ class gptMessageManage(object):
         new_thread.start()
         # 在14秒内每秒查询msg_status_dict，判断是否有返回值
         for i in range(14):
-            if self.msgs_status_dict.get(str(msgs.id), '') == 'haveResponse':
+            if self.msgs_status_dict[str(msgs.id)] == 'haveResponse':
                 break
             time.sleep(1)
-        if self.msgs_status_dict.get(str(msgs.id), '') == 'haveResponse':
+        if self.msgs_status_dict[str(msgs.id)] == 'haveResponse':
             return self.msgs_msgdata_dict[str(msgs.source)].messages[-1]
         else:
             return '服务器繁忙，请稍后再试！'
