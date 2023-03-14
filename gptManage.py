@@ -4,7 +4,7 @@ import json
 import math
 import random
 import logging
-
+import threading
 
 
 class gptSessionManage(object):
@@ -70,6 +70,12 @@ class gptMessageManage(object):
         获取每条msg，回复消息
         '''
         # 判断是否返回分割列表里面的内容
+        if msgs.content == '接收':
+            if self.msgs_status_dict.get(str(msgs.id),'')=='haveResponse':
+                return self.msgs_msgdata_dict[str(msgs.source)].messages[-1]
+            else:
+                return '仍在处理中'
+
         if msgs.content=='继续' and len(self.msgs_msg_cut_dict.get(str(msgs.source),[]))>0:
             if len(self.msgs_msg_cut_dict[str(msgs.source)])>1:
                 return self.msgs_msg_cut_dict[str(msgs.source)].pop(0)+'\n 还有剩余结果，请回复【继续】查看！'
@@ -146,37 +152,42 @@ class gptMessageManage(object):
         随机获取token，可以设置多个token，避免单个token超过请求限制。
         '''
         return random.choice(self.tokens)
+
+    def get_respond(self,headers,json,msgs):
+        self.msgs_status_dict[str(msgs.id)] = 'waiting'
+        response = requests.post('https://api.openai.com/v1/chat/completions', headers=headers, json=json)
+        response_parse = json.loads(response.text)
+        self.msgs_msgdata_dict[str(msgs.source)].add_res_message(
+            response_parse['choices'][0]['message']['content'])
+        self.msgs_status_dict[str(msgs.id)] = 'haveResponse'
+
+
     def send_request(self,msgs):
-        try:
-            headers = {
-                'Content-Type': 'application/json',
-                'Authorization': self.get_header(),
-            }
-            print('发送的消息：',self.msgs_msgdata_dict[str(msgs.source)].messages)
 
-            json_data = {
-                'model': 'gpt-3.5-turbo',
-                'messages': self.msgs_msgdata_dict[str(msgs.source)].messages,
-                'max_tokens':self.max_tokens,
-                'temperature':self.temperature,
-            }
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': self.get_header(),
+        }
+        print('发送的消息：', self.msgs_msgdata_dict[str(msgs.source)].messages)
 
-            response = requests.post('https://api.openai.com/v1/chat/completions', headers=headers, json=json_data,timeout=14)
-            response_parse = json.loads(response.text)
-            print(response_parse)
-            if 'error' in response_parse:
-                print(response_parse)
-                self.msgs_status_dict[str(msgs.id)] = 'haveResponse'
-                return '出错了，请稍后再试！'
-            else:
-                self.msgs_msgdata_dict[str(msgs.source)].add_res_message(response_parse['choices'][0]['message']['content'])
-                self.msgs_status_dict[str(msgs.id)] = 'haveResponse'
-                return response_parse['choices'][0]['message']['content']
-        except Exception as e:
-            print(e)
-            self.msgs_status_dict[str(msgs.id)] = 'haveResponse'
-            return '请求超时，请稍后再试！'
-        
+        json_data = {
+            'model': 'gpt-3.5-turbo',
+            'messages': self.msgs_msgdata_dict[str(msgs.source)].messages,
+            'max_tokens': self.max_tokens,
+            'temperature': self.temperature,
+        }
+        new_thread = threading.Thread(target=self.get_respond, args=(headers, json_data, msgs))
+        new_thread.start()
+        # 在14秒内每秒查询msg_status_dict，判断是否有返回值
+        for i in range(14):
+            if self.msgs_status_dict.get(str(msgs.id), '') == 'haveResponse':
+                break
+            time.sleep(1)
+        if self.msgs_status_dict.get(str(msgs.id), '') == 'haveResponse':
+            return self.msgs_msgdata_dict[str(msgs.source)].messages[-1]
+        else:
+            return '服务器繁忙，请稍后再试！'
+
     def del_cache(self):
         '''
         清除缓存
