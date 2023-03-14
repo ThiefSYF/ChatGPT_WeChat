@@ -68,5 +68,6 @@ if __name__ == '__main__':
         #去除列表中的换行符
         sensitive_data = [word.strip() for word in sensitive_data]
 
-
-    app.run( host = '0.0.0.0',port=80)
+    from gevent import pywsgi
+    server = pywsgi.WSGIServer(('0.0.0.0', 80), app)
+    server.serve_forever()
