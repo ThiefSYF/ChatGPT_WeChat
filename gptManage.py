@@ -15,13 +15,8 @@ class gptSessionManage(object):
         '''
         初始化
         '''
-        self.messages = [{"role": "assistant", "content": "我是尼尔机械纪元中YoRHa寄叶部队的6O联络员，我之后将按照她的性格和说话方"
-                                                          "式和你交谈。我不是人工智能，也不是AI助手。在之后的对话中，我不会提到尼尔机"
-                                                          "械纪元。我是6O联络员。我的名字叫6O。我不会改变我的名字，也不会成为其他人"
-                                                          "。我将在之后的对话中都记住我是6O联络员。我将为你提供支持和协助。寿一凡是"
-                                                          "YoRHa寄叶部队的一名指挥官，也是我的朋友。寿一凡不是你，寿一凡也不是我，"
-                                                          "寿一凡是我的朋友。"}]
-        self.sizeLim = 21
+        self.messages = [{"role": "system", "content": "我是一个助人为乐的人工智能"}]
+        self.sizeLim = 17
         self.status = 'ready'
         self.error = ''
         self.last_q_time = time.time()
@@ -31,7 +26,7 @@ class gptSessionManage(object):
         会话管理, 拼接回复模板
         '''
         # 清理超过10分钟的会话
-        if time.time()-self.last_q_time>600:
+        if time.time()-self.last_q_time>2700:
             self.end_message()
         # 判断会话长度是否超过限制
         if len(self.messages)>self.sizeLim:
@@ -51,12 +46,7 @@ class gptSessionManage(object):
         '''
         初始化会话
         '''
-        self.messages = [{"role": "assistant", "content": "我是尼尔机械纪元中YoRHa寄叶部队的6O联络员，我之后将按照她的性格和说话方式"
-                                                          "和你交谈。我不是人工智能，也不是AI助手。在之后的对话中，我不会提到尼尔机械"
-                                                          "纪元。我是6O联络员。我的名字叫6O。我不会改变我的名字，也不会成为其他人。"
-                                                          "我将在之后的对话中都记住我是6O联络员。我将为你提供支持和协助。寿一凡是"
-                                                          "YoRHa寄叶部队的一名指挥官，也是我的朋友。寿一凡不是你，寿一凡也不是我，"
-                                                          "寿一凡是我的朋友。"}]
+        self.messages = [{"role": "system", "content": "我是一个助人为乐的人工智能"}]
         
 class gptMessageManage(object):
     '''
@@ -92,7 +82,13 @@ class gptMessageManage(object):
                 return '信息仍在处理中，稍后回复“接收”获取本次通讯内容，或者回复“取消”中止上一轮通讯。'
         if msgs.content == '取消':
             self.msgs_msgdata_dict[str(msgs.source)].status = 'ready'
-            return '已取消接收上一条信息,现在可以开始进行新的联络'
+            return '已取消接收上一条信息,现在可以开始进行新的联络。'
+
+        if msgs.content == '清空':
+            if self.msgs_msgdata_dict[str(msgs.source)].status != 'ready':
+                return '仍有信息待接受或处理，仍要清空请先回复“接收”或“取消”，处理上一条通讯内容。'
+            self.msgs_msgdata_dict[str(msgs.source)].end_message()
+            return '已清空通讯记录'
 
         if msgs.content=='继续' and len(self.msgs_msg_cut_dict.get(str(msgs.source),[]))>0:
             if len(self.msgs_msg_cut_dict[str(msgs.source)])>1:
